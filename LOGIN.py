@@ -55,7 +55,7 @@ def login(driver):
     driver.execute_script("arguments[0].click();", element)
     currentURL = driver.current_url
     if(currentURL.find("dashboard") > 0):
-      status = 402
+      status = 200
     else:
       status = 401
   except configparser.NoOptionError:
