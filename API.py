@@ -160,7 +160,6 @@ for a in range(begin,limit):
         baca = logout.logout(driver)
         set_session(baca, "", "")
         print("Berhasil Logout!\nKode : {}".format(baca))
-        exit()
     elif(process.lower() == "true"):
       #Blok ketika data sudah diproses sebelumnya
       counter = 0
@@ -173,6 +172,7 @@ for a in range(begin,limit):
     #Blok ketika metadata belum tersedia di file config
     flimit = worksheet.nrows
     set_file_index(a,fbegin,flimit,process)
+    print("Metadata Generated!")
     #print("Filename: {}\nBegin : {}\nLimit : {}\nProcess : {}".format(file[a],fbegin,flimit, process))
     continue
   except Exception as err:

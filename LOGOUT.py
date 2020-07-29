@@ -30,8 +30,6 @@ if not os.path.exists('config.ini'):
   write_file()
 else:
   configur.read('config.ini')
-  set_session("501", "", "")
-  write_file()
 
 #Function Logout:
 def logout(driver):
@@ -50,3 +48,6 @@ def logout(driver):
   write_file()
   driver.close()
   return status
+
+if __name__ == "__main__":
+  logout(webdriver.Chrome())
