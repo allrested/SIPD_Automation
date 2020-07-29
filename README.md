@@ -46,7 +46,7 @@ $
 $ python API.py
 $ DevTools listening on ws://127.0.0.1:1234/
 $ Berhasil Login!
-$ Kode: 402
+$ Kode: 200
 $
 $ python API.py
 $ DevTools listening on ws://127.0.0.1:1234/

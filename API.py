@@ -70,7 +70,7 @@ except Exception:
   write_file()
   exit()
 
-while status != 402:
+while status != 200:
   try:
     driver = webdriver.Chrome()
     baca = login.login(driver)
