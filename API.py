@@ -142,6 +142,7 @@ for a in range(begin,limit):
           df.columns = df.columns.map(lambda x: x.split(".")[-1])
           df.to_excel("./{}/{}.xlsx".format(fout,nama))
           configur.set('api_files', "begin-{}".format(a), '{}'.format(b))
+          print("#{}. File Created: {}.xlsx".format(b, nama))
           #print("Informasi kolom-{} col0: {} col1: {} col2: {}".format(b,col0,col1,col2))
           #Tracking progress dan disimpan ke file config
           counter = counter + 1

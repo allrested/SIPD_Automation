@@ -35,6 +35,28 @@ $ pip install selenium
 ```
 $ git clone https://github.com/allrested/SIPD_Automation.git
 $ cd SIPD_Automation
-$ python LOGIN.py
+```
+
+## Run Data Crawler run
+
+```
 $ python API.py
+$ API Config Generated!
+$
+$ python API.py
+$ DevTools listening on ws://127.0.0.1:1234/
+$ Berhasil Login!
+$ Kode: 402
+$
+$ python API.py
+$ DevTools listening on ws://127.0.0.1:1234/
+$ Metadata Generated!
+$
+$ python API.py
+$ DevTools listening on ws://127.0.0.1:1234/
+$ #1. File Created: VISI.xlsx
+$ #2. File Created: MISI.xlsx
+$ #3. File Created: TUJUAN.xlsx
+$ Berhasil Logout!
+$ Kode : 501
 ```
