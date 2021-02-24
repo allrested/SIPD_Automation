@@ -4,10 +4,10 @@ import glob
 import json
 import os
 import sys
-import time
-import xlrd
+import timeit
 import xlsxwriter
 from selenium import webdriver
+from openpyxl import load_workbook
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
@@ -113,8 +113,8 @@ for a in range(begin,limit):
     flimit = 1
     process = "False"
     #Membuka file excel yang diproses
-    workbook = xlrd.open_workbook(file[a])
-    worksheet = workbook.sheet_by_index(0)
+    workbook = load_workbook(file[a])
+    worksheet = workbook['API']
     #Check metadata dari Config
     nama = configur.get('api_files', "filename-{}".format(a))
     fbegin = configur.getint('api_files', "begin-{}".format(a))
@@ -130,9 +130,7 @@ for a in range(begin,limit):
       for b in range(fbegin,flimit):
         try:
           WebDriverWait(driver, 1000)
-          alamat = str(worksheet.cell(b, 1).value)
-          nama = str(worksheet.cell(b, 2).value)
-          url = ("{}?start=0&length=-1".format(alamat))
+          url = ('https://bandung.sipd.kemendagri.go.id/daerah/main/plan/asmas/2022/tampil-verif-usulan/25/0?verif_skpd=0&valid_tapd=0')
           driver.execute_script('window.open("'+url+'")')
           driver.switch_to.window(driver.window_handles[-1])
           elem = driver.find_element(By.XPATH, "//*")
@@ -141,9 +139,9 @@ for a in range(begin,limit):
           df = json_normalize(json_data, 'data', ['draw', 'recordsTotal', 'recordsFiltered'], 
                           record_prefix='data_')
           df.columns = df.columns.map(lambda x: x.split(".")[-1])
-          df.to_excel("./{}/{}.xlsx".format(fout,nama))
+          df.to_excel("./{}/Usulan.xlsx".format(fout))
           configur.set('api_files', "begin-{}".format(a), '{}'.format(b))
-          print("#{}. File Created: {}.xlsx".format(b, nama))
+          print("#{}. File Created: Usulan.xlsx".format(b))
           #print("Informasi kolom-{} col0: {} col1: {} col2: {}".format(b,col0,col1,col2))
           #Tracking progress dan disimpan ke file config
           counter = counter + 1
@@ -164,6 +162,28 @@ for a in range(begin,limit):
         print("Berhasil Logout!\nKode : {}".format(baca))
     elif(process.lower() == "true"):
       #Blok ketika data sudah diproses sebelumnya
+      driver.get("https://bandung.sipd.kemendagri.go.id/daerah/main/plan/asmas/2022/25/0")
+      driver.execute_script("rekomUsulan('11791','verif')")
+      
+      button = driver.find_element(By.ID, "s2id_autogen15")
+      driver.implicitly_wait(10)
+      ActionChains(driver).move_to_element(button).perform()
+      driver.find_element(By.ID, "s2id_autogen15").click()
+      driver.find_element(By.ID, "s2id_autogen16_search").send_keys("Belanja Transfer")
+      driver.find_element(By.ID, "s2id_autogen16_search").send_keys(Keys.ENTER)
+      
+      driver.find_element(By.ID, "s2id_autogen17").click()
+      driver.find_element(By.ID, "s2id_autogen18_search").send_keys("rekonstruksi jalan")
+      driver.find_element(By.ID, "s2id_autogen18_search").send_keys(Keys.ENTER)
+
+      driver.find_element(By.NAME, "rekom_teks").send_keys("Rekomendasi")
+      driver.find_element(By.NAME, "rekom_volume").send_keys("10")
+      driver.find_element(By.NAME, "rekom_satuan").send_keys("meter")
+      driver.find_element(By.NAME, "rekom_anggaran").send_keys("10000")
+      
+      WebDriverWait(driver, 60).until(expected_conditions.presence_of_element_located((By.ID, "simpan_verval")))
+      element = driver.find_element(By.ID, "simpan_verval")
+      driver.execute_script("arguments[0].click();", element)
       counter = 0
       #print("Informasi excel fbegin: {} flimit: {} file sudah diproses (COMPLETE)".format(fbegin,flimit))
     else:
@@ -172,7 +192,7 @@ for a in range(begin,limit):
       #print("Informasi excel fbegin: {} flimit: {} process ERROR {}".format(fbegin,flimit, process))
   except configparser.NoOptionError:
     #Blok ketika metadata belum tersedia di file config
-    flimit = worksheet.nrows
+    flimit = worksheet.max_row
     set_file_index(a,fbegin,flimit,process)
     print("Metadata Generated!")
     #print("Filename: {}\nBegin : {}\nLimit : {}\nProcess : {}".format(file[a],fbegin,flimit, process))

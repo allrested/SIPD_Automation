@@ -37,7 +37,8 @@ def logout(driver):
   #Definisi konfigurasi file yang akan diproses
   try:
     url = configur.get('data', 'url')
-    driver.get("https://{}/daerah/main/plan/logout/0".format(url))
+    idu = configur.get('data', 'idu')
+    driver.get("https://{}/daerah/logout?idu={}".format(url,idu))
     currentURL = driver.current_url
     if(currentURL.find("landing") > 0):
       status = 501
