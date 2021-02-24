@@ -3,25 +3,27 @@ import configparser
 import glob
 import json
 import os
+import pdfkit
 import sys
 import time
 import xlrd
 import xlsxwriter
 from selenium import webdriver
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support import expected_conditions
-from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-from pandas import json_normalize
 
 import LOGIN as login
 import LOGOUT as logout
 
 options = {
-    'log-level':'error'
+    'log-level':'error',
+    'page-size':'A4',
+    'dpi': 500,
+    'orientation': 'landscape'
 }
 configur = configparser.ConfigParser()
 #orig_stdout = sys.stdout
@@ -31,22 +33,22 @@ configur = configparser.ConfigParser()
 try:
   folder = configur.get('api', 'folder')
 except Exception:
-  folder = "DATA_API"
+  folder = "DATA_RKA"
 file = glob.glob("{}/[!_][!~$]*.xlsx".format(folder))
 #Fungsi Buka File Config
 def write_file():
     configur.write(open('config.ini', 'w'))
 #Fungsi Generate File Config
 def set_file():
-  configur['api'] = {'folder': folder,'output': 'OUTPUT_API', 'indexFileBegin': '0', 'limitFilePerFolder': len(file)}
-  configur['api_files'] = {}
+  configur['rka'] = {'folder': folder,'output': 'OUTPUT_RKA', 'indexFileBegin': '0', 'limitFilePerFolder': len(file)}
+  configur['rka_files'] = {}
 #Fungsi Generate Metadata dari File yang akan diproses
 def set_file_index(index, mulai, batas, status):
-  configur.set('api_files', "filename-{}".format(index), '{}'.format(file[index]))
-  configur.set('api_files', "begin-{}".format(index), '{}'.format(mulai))
-  configur.set('api_files', "start-{}".format(index), '1')
-  configur.set('api_files', "limit-{}".format(index), '{}'.format(batas))
-  configur.set('api_files', "complete-{}".format(index), status)
+  configur.set('rka_files', "filename-{}".format(index), '{}'.format(file[index]))
+  configur.set('rka_files', "begin-{}".format(index), '{}'.format(mulai))
+  configur.set('rka_files', "start-{}".format(index), '1')
+  configur.set('rka_files', "limit-{}".format(index), '{}'.format(batas))
+  configur.set('rka_files', "complete-{}".format(index), status)
 def set_session(status, session, currenturl):
   configur.set('data', "status", '{}'.format(status))
   configur.set('data', "session", '{}'.format(session))
@@ -61,19 +63,19 @@ else:
 
 #Definisi konfigurasi file yang akan diproses
 try:
-  begin = configur.getint('api', 'indexfilebegin')
-  limit = configur.getint('api', 'limitfileperfolder')
+  begin = configur.getint('rka', 'indexfilebegin')
+  limit = configur.getint('rka', 'limitfileperfolder')
   status = configur.getint('data', 'status')
-  fout = configur.get('api', 'output')
+  fout = configur.get('rka', 'output')
 except Exception:
-  print("API Config Generated!")
+  print("RKA Config Generated!")
   set_file()
   write_file()
   exit()
 
 while status != 200:
   try:
-    driver = webdriver.Chrome(ChromeDriverManager().install())
+    driver = webdriver.Chrome()
     baca = login.login(driver)
     print("Berhasil Login!\nKode: {}".format(baca))
     status = baca
@@ -116,10 +118,10 @@ for a in range(begin,limit):
     workbook = xlrd.open_workbook(file[a])
     worksheet = workbook.sheet_by_index(0)
     #Check metadata dari Config
-    nama = configur.get('api_files', "filename-{}".format(a))
-    fbegin = configur.getint('api_files', "begin-{}".format(a))
-    flimit = configur.getint('api_files', "limit-{}".format(a))
-    process = configur.get('api_files', "complete-{}".format(a))
+    nama = configur.get('rka_files', "filename-{}".format(a))
+    fbegin = configur.getint('rka_files', "begin-{}".format(a))
+    flimit = configur.getint('rka_files', "limit-{}".format(a))
+    process = configur.get('rka_files', "complete-{}".format(a))
     #print("posisi: {} namafile: {} process {}".format(a,nama,process))
     #Check Status pemrosesan file
     if(process.lower() == "false"):
@@ -127,29 +129,39 @@ for a in range(begin,limit):
       #print("Informasi excel fbegin: {} flimit: {} process TRUE".format(fbegin,flimit))
       counter = 0
       #Membaca data dari file excel
+      path_wkthmltopdf = 'C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe'
+      config_pdf = pdfkit.configuration(wkhtmltopdf=path_wkthmltopdf)
       for b in range(fbegin,flimit):
         try:
-          WebDriverWait(driver, 1000)
-          alamat = str(worksheet.cell(b, 1).value)
-          nama = str(worksheet.cell(b, 2).value)
-          url = ("{}?start=0&length=-1".format(alamat))
-          driver.execute_script('window.open("'+url+'")')
-          driver.switch_to.window(driver.window_handles[-1])
-          elem = driver.find_element(By.XPATH, "//*")
-          json_content = driver.find_element(By.TAG_NAME, "pre").text
-          json_data = json.loads(json_content)
-          df = json_normalize(json_data, 'data', ['draw', 'recordsTotal', 'recordsFiltered'], 
-                          record_prefix='data_')
-          df.columns = df.columns.map(lambda x: x.split(".")[-1])
-          df.to_excel("./{}/{}.xlsx".format(fout,nama))
-          configur.set('api_files', "begin-{}".format(a), '{}'.format(b))
-          print("#{}. File Created: {}.xlsx".format(b, nama))
+          alamat = str(worksheet.cell(b, 31).value)
+          nomor = str(worksheet.cell(b, 0).value)
+          belanja = str(worksheet.cell(b, 40).value)
+          id = str(worksheet.cell(b, 2).value)
+          url = ("https://bandung.sipd.kemendagri.go.id/daerah/main/plan/belanja/2021/{}".format(alamat))
+          driver.get(url)
+          #Check ukuran file
+          json_content = driver.page_source
+          dirname = "D:\\Bandung\\SIPD\\SIPD_Automation\\{}\\SETDA".format(fout)
+          if not os.path.exists(dirname):
+            os.makedirs(dirname)
+          dirhtml = "{}\\HTML".format(dirname)
+          if not os.path.exists(dirhtml):
+            os.makedirs(dirhtml)
+          filename = '{}\\RKA.2021.{}.{}.pdf'.format(dirname, nomor, belanja)
+          filehtml = '{}\\HTML\\RKA.2021.{}.{}'.format(dirhtml, nomor, belanja)
+          pdfkit.from_string(json_content, filename, options=options, configuration=config_pdf)
+          configur.set('rka_files', "begin-{}".format(a), '{}'.format(b))
+          print("#{}. File Created: {}.{}.pdf".format(b, nomor, belanja))
+          #driver.find_element(By.TAG_NAME, "body").send_keys(Keys.ESCAPE)
+          #driver.find_element(By.TAG_NAME, "body").send_keys(Keys.CONTROL + 'w')
           #print("Informasi kolom-{} col0: {} col1: {} col2: {}".format(b,col0,col1,col2))
           #Tracking progress dan disimpan ke file config
           counter = counter + 1
           fbegin = b
           set_file_index(a,fbegin,flimit,process)
           write_file()
+          with open("{}.html".format(filehtml), 'w+') as f:
+            f.write(json_content)
         except Exception as err:
           #Jika terjadi kesalahan tampilkan diconsole dan lanjutkan
           print(err)
